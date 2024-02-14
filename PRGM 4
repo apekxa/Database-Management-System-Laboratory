@@ -1,0 +1,106 @@
+create database database_user_COLLEGE; 
+use database_user_COLLEGE; 
+ 
+create table student 
+( 
+usn varchar(10), 
+sname varchar(15), 
+address varchar(15), 
+phone bigint, 
+gender varchar(6), 
+primary key(usn) 
+); 
+ 
+insert into student values('1BI15CS100','Namitha','Udupi',7860054110,'f'); 
+create table semsec 
+( 
+ssid varchar(5), 
+sem int, 
+sec varchar(1), 
+primary key(ssid) 
+); 
+insert into semsec values('S01',1,'A'); 
+create table class 
+( 
+usn varchar(10), 
+ssid varchar(5), 
+primary key(usn), 
+foreign key(usn) references student(usn) on delete cascade, 
+foreign key(ssid) references semsec(ssid) on delete cascade 
+); 
+insert into class values('1BI15CS100','S04'); 
+create table course 
+( 
+subcode varchar(7), 
+title varchar(15), 
+sem int, 
+credits int, 
+primary key(subcode) 
+); 
+insert into subject values('15CS14','Algorithms',1,4); 
+create table iamarks 
+( 
+usn varchar(10), 
+subcode varchar(7), 
+ssid varchar(5), 
+test1 int, 
+test2 int, 
+test3 int, 
+final_ia int, 
+primary key(usn,subcode,ssid), 
+foreign key(usn) references student(usn) on delete cascade, 
+foreign key(subcode) references subject(subcode) on delete cascade, 
+foreign key(ssid) references semsec(ssid) on delete cascade 
+); 
+ 
+insert into iamarks values('1BI15CS100','15CS41','S05',19,18,20,NULL);
+ 
+ 
+1. List all the student details studying in fourth semester ‘C’ section. 
+select s.usn, sname, gender, address 
+from student s, semsec sc ,class c 
+where s.usn=c.usn and c.ssid= sc.ssid and sc.sem = 4 and sc.sec ='C'; 
+ 
+2. Compute the total number of male and female students in each semester and in each section. 
+select sem, sec, gender, count(*) as count 
+from student s, semsec sc, class c 
+where s.usn = c.usn and sc.ssid = c.ssid 
+group by sem, sec, gender; 
+ 
+3. Create a view of Test1 marks of student USN ‘1BI15CS101’ in all subjects. 
+create view test1_marks as 
+( 
+select usn, test1, subcode 
+from iamarks 
+where usn='1BI15CS101' 
+); 
+ 
+4. Calculate the FinalIA (average of best two test marks) and update the corresponding table for all 
+students. 
+create table average_finder 
+( 
+select usn,subcode,greatest(test1,test2,test3) as highest, case 
+when test1<greatest(test1,test2,test3) and test1>least(test1,test2,test3) then test1 
+when test2<greatest(test1,test2,test3) and test2>least(test1,test2,test3) then test2 
+else test3 
+end as second_highest from iamarks 
+); 
+ 
+update iamarks a set final_ia = 
+(select (highest+second_highest)/2 from average_finder 
+where a.usn =usn and a.subcode= subcode); 
+ 
+5. Categorize students based on the following criterion: 
+If FinalIA = 17 to 20 then CAT = ‘Outstanding’ 
+If FinalIA = 12 to 16 then CAT = ‘Average’ 
+If FinalIA< 12 then CAT = ‘Weak’ 
+Give these details only for 8 th semester A, B, and C section students. 
+ 
+select usn, subcode, case 
+when final_ia>=17 and final_ia<=20 then 'Outstanding' 
+when final_ia>=12 and final_ia<=16 then 'Average' 
+when final_ia<12 then 'Weak' 
+end as category 
+from iamarks 
+where usn in 
+(select usn from semsec sc, class c where sc.ssid=c.ssid and sem=8 and sec in (‘A’,’B’,’C’)); 
