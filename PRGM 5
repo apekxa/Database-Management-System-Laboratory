@@ -1,0 +1,108 @@
+
+create table department 
+( 
+dno varchar(5), 
+dname varchar(15),
+mgrssn varchar(5), 
+mgrstartdate date, 
+primary key(dno), 
+); 
+ 
+create table employee 
+( 
+ssn varchar(5), 
+name varchar(15), 
+address varchar(15), 
+sex varchar(6), 
+salary int, 
+superssn varchar(5), 
+dno varchar(5), 
+primary key(ssn), 
+); 
+ 
+alter table employee add constraint fk1 foreign key(dno) references department(dno) on delete 
+cascade; 
+ 
+alter table employee add constraint fk2 foreign key(superssn) references employee(ssn) on delete 
+cascade 
+ 
+alter table department add constraint fk3 foreign key(mgrssn) references employee(ssn) on delete 
+cascade 
+ 
+insert into department values('&dno','&dname','&mgrssn','&mgrstartdate'); 
+insert into employee values('&ssn','&name','&address','&sex','&salary','&superssn','&dno'); 
+create table dlocation 
+( 
+dno varchar(5), 
+dloc varchar(15), 
+primary key (dno,dloc), 
+foreign key(dno) references department(dno) on delete cascade 
+); 
+insert into dlocation values('&dno','&dloc'); 
+create table project 
+( 
+pno varchar(5), 
+pname varchar(10), 
+plocation varchar(10), 
+dno varchar(5), 
+primary key(pno), 
+foreign key(dno) references department(dno) on delete cascade 
+); 
+ 
+insert into project values('&pno','&pname','&plocation','&dno'); 
+create table works_on 
+( 
+ssn varchar(5), 
+pno varchar(5), 
+hours int, 
+primary key(ssn,pno), 
+foreign key(ssn) references employee(ssn) on delete cascade, 
+foreign key(pno) references project(pno) on delete cascade 
+); 
+ 
+insert into works_on values('&ssn','&pno','&hours'); 
+ 
+1. Make a list of all project numbers for projects that involve an employee whose last name is 
+‘Scott’, either as a worker or as a manager of the department that controls the project. 
+select distinct pno 
+from project 
+where pno in 
+(select pno 
+from project p, department d, employee e 
+where p.dno = d.dno and d.mgrssn = e.ssn and name like '%Scott') 
+or pno in 
+(select pno 
+from works_on w, employee e 
+where w.ssn = e.ssn and name like '%Scott'); 
+ 
+2. Show the resulting salaries if every employee working on the ‘IoT’ project is given a 10 percent 
+raise. 
+select e.name, e.salary*1.1 as new_salary 
+from employee e, works_on w 
+where e.ssn = w.ssn and 
+w.pno in 
+(select pno 
+from project 
+where pname ='IoT'); 
+ 
+3. Find the sum of the salaries of all employees of the ‘Accounts’ department, as well as the 
+maximum salary, the minimum salary, and the average salary in this department. 
+select sum(salary), max(salary), min(salary), avg(salary) 
+from (employee e join department d on d.dno = e.dno) 
+where d.dname = 'Accounts'; 
+ 
+4. Retrieve the name of each employee who works on all the projects controlledby department 
+number 5 (use NOT EXISTS operator). 
+select name from employee e 
+where not exists ((select pno from project where dno=5) minus 
+(select pno from works_on where ssn = e.ssn));
+ 
+5. For each department that has more than five employees, retrieve the department number and the 
+number of its employees who are making more than Rs.6,00,000. 
+select d.dno,count(*) as count 
+from department d,employee e 
+where d.dno= e.dno and salary >600000 
+and d.dno in 
+(select dno from employee 
+group by dno having count(*)>5) 
+group by d.dno; 
