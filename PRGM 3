@@ -1,0 +1,93 @@
+ 
+create database database_user_MOVIE; 
+use database_user_MOVIE; 
+ 
+create table actor 
+( 
+act_id varchar(5), 
+act_name varchar(15), 
+act_gender varchar(6), 
+primary key(act_id) 
+); 
+insert into actor values('A101','Raj','M'); 
+create table director 
+( 
+dir_id varchar(5), 
+dir_name varchar(15), 
+dir_phone bigint, 
+primary key(dir_id) 
+); 
+insert into director values('D01','Hitchcock',8723268423); 
+create table movies 
+( 
+mov_id varchar(5), 
+mov_title varchar(20), 
+mov_year int, 
+mov_lang varchar(10), 
+dir_id varchar(5), 
+primary key(mov_id), 
+foreign key(dir_id) references director(dir_id) on delete cascade 
+); 
+insert into movies values('M10','Psycho',1960,'english','D01'); 
+create table movie_cast 
+( 
+act_id varchar(5), 
+mov_id varchar(5), 
+role varchar(10), 
+primary key(act_id, mov_id), 
+foreign key(act_id) references actor(act_id) on delete cascade, 
+foreign key(mov_id) references movies(mov_id) on delete cascade 
+); 
+ 
+insert into movie_cast values('A101','M11','m_lead'); 
+ 
+create table rating 
+( 
+rat_id varchar(5), 
+mov_id varchar(5), 
+rev_stars int, 
+primary key(rat_id), 
+foreign key(mov_id) references movies(mov_id) on delete cascade 
+); 
+ 
+insert into rating values('R1','M11',4); 
+ 
+1. List the titles of all movies directed by ‘Hitchcock’. 
+select mov_title 
+from movies m, director d 
+where m.dir_id = d.dir_id and d.dir_name ='Hitchcock'; 
+ 
+ 
+2. Find the movie names where one or more actors acted in two or more movies. 
+select distinct mov_title from movies m, movie_cast mc 
+where m.mov_id = mc.mov_id and 
+(select count(mov_id) 
+from movie_cast 
+where act_id =mc.act_id)>=2; 
+ 
+3. List all actors who acted in a movie before 2000 and also in a movie after 2015 (use JOIN 
+operation). 
+select act_name 
+from actor a join movie_cast mc on a.act_id = mc.act_id join movies m 
+on mc.mov_id = m.mov_id 
+where m.mov_year<2000 
+and act_name in ( 
+select act_name 
+from actor a join movie_cast mc on a.act_id = mc.act_id join movies m 
+on mc.mov_id = m.mov_id 
+where m.mov_year>2015); 
+ 
+ 
+4. Find the title of movies and number of stars for each movie that has at least one rating and find 
+the highest number of stars that movie received. Sort the result by movie title. 
+select mov_title, max(rev_stars) 
+from movies m, rating r 
+where m.mov_id = r.mov_id group by m.mov_title order by m.mov_title; 
+ 
+5. Update rating of all movies directed by ‘Steven Spielberg’ to 5 
+update rating set rev_stars=5 
+where mov_id in 
+(select m.mov_id 
+from movies m, director d 
+where m.dir_id = d.dir_id and d.dir_name='Steven Spielberg'); 
+select * from rating; 
